@@ -2,7 +2,7 @@ import { useState } from 'react'
 import Modal from './Modal'
 import { CATEGORIES, newId } from '../data'
 
-const empty = { category: CATEGORIES[0], description: '', budgeted: '', paid: '', pending: '', notes: '' }
+const empty = { category: CATEGORIES[0], description: '', budgeted: '', paid: '', pending: '', fullyPaid: false, notes: '' }
 
 export default function ExpenseForm({ expense, tripId, onSave, onClose }) {
   const [form, setForm] = useState(
@@ -10,6 +10,7 @@ export default function ExpenseForm({ expense, tripId, onSave, onClose }) {
   )
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const toggle = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.checked }))
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -41,6 +42,10 @@ export default function ExpenseForm({ expense, tripId, onSave, onClose }) {
             <input type="number" min="0" step="0.01" className="input" value={form.pending} onChange={set('pending')} placeholder="0.00" />
           </Field>
         </div>
+        <label className="flex items-center gap-2 text-sm text-gray-700">
+          <input type="checkbox" checked={!!form.fullyPaid} onChange={toggle('fullyPaid')} className="h-4 w-4 rounded border-gray-300" />
+          Paid in full — no remaining balance
+        </label>
         <Field label="Notes">
           <textarea
             className="input resize-none"

@@ -63,7 +63,10 @@ export function tripTotals(expenses) {
   const budgeted = expenses.reduce((s, e) => s + (Number(e.budgeted) || 0), 0)
   const paid = expenses.reduce((s, e) => s + (Number(e.paid) || 0), 0)
   const pending = expenses.reduce((s, e) => s + (Number(e.pending) || 0), 0)
-  const remaining = budgeted - paid - pending
+  const remaining = expenses.reduce((s, e) => {
+    if (e.fullyPaid) return s
+    return s + (Number(e.budgeted) || 0) - (Number(e.paid) || 0) - (Number(e.pending) || 0)
+  }, 0)
   return { budgeted, paid, pending, remaining }
 }
 

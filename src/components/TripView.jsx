@@ -73,13 +73,14 @@ export default function TripView({ trip, expenses, onSaveExpense, onDeleteExpens
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {items.map((exp) => {
-                    const rem = (Number(exp.budgeted) || 0) - (Number(exp.paid) || 0) - (Number(exp.pending) || 0)
+                    const rem = exp.fullyPaid ? 0 : (Number(exp.budgeted) || 0) - (Number(exp.paid) || 0) - (Number(exp.pending) || 0)
                     return (
                       <>
                         <tr key={exp.id} className="bg-white hover:bg-gray-50">
                           <td className="px-4 py-2">
                             <div className="flex items-center gap-2">
                               <span>{exp.description}</span>
+                              {exp.fullyPaid && <span className="text-xs text-green-600 font-medium">paid in full</span>}
                               {exp.notes && (
                                 <button
                                   onClick={() => toggleNote(exp.id)}
