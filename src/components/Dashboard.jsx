@@ -1,4 +1,4 @@
-import { fmt, tripLabel, tripTotals } from '../data'
+import { fmt, tripTotals } from '../data'
 
 export default function Dashboard({ trips, expenses }) {
   const activeTrips = trips.filter((t) => t.status !== 'completed')
