@@ -13,11 +13,27 @@ A personal travel budget tracker. Organize expenses by trip and category, track 
 
 ## Development
 
-Requires a Supabase project. Copy `.env.local.example` to `.env.local` and fill in your project URL and anon key.
+### Against the remote Supabase project
+
+Copy `.env.local.example` to `.env.local` and fill in your Supabase project URL and anon key (Settings → API in the Supabase dashboard).
 
 ```bash
 npm install
 npm run dev
+```
+
+### Against a local Supabase instance (recommended)
+
+Requires [Docker Desktop](https://www.docker.com/products/docker-desktop/) and the [Supabase CLI](https://supabase.com/docs/guides/cli).
+
+```bash
+supabase start        # spins up a local Postgres + Supabase stack
+```
+
+Copy the printed `API URL` and `anon key` into `.env.local` (the commented-out lines in `.env.local.example`), then run `npm run dev`. Your local data is completely separate from production.
+
+```bash
+supabase stop         # shut down when done
 ```
 
 ## Testing
