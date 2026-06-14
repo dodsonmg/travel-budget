@@ -1,70 +1,90 @@
 import { useState, useEffect, useRef } from 'react'
-import { loadData, saveData, exportData, importData, tripLabel } from './data'
+import { supabase } from './supabase'
+import {
+  loadTrips, loadExpenses,
+  saveTrip, deleteTrip,
+  saveExpense, deleteExpense,
+  exportData, importData,
+  tripLabel,
+} from './data'
 import Dashboard from './components/Dashboard'
 import TripView from './components/TripView'
 import TripForm from './components/TripForm'
+import Auth from './components/Auth'
 import './index.css'
 
 export default function App() {
-  const [data, setData] = useState(() => loadData())
+  const [session, setSession] = useState(undefined) // undefined = loading
+  const [trips, setTrips] = useState([])
+  const [expenses, setExpenses] = useState([])
   const [activeTab, setActiveTab] = useState('dashboard')
   const [showTripForm, setShowTripForm] = useState(false)
   const [editingTrip, setEditingTrip] = useState(null)
   const importRef = useRef()
 
+  // ── Auth ────────────────────────────────────────────────────────────────────
+
   useEffect(() => {
-    saveData(data)
-  }, [data])
+    supabase.auth.getSession().then(({ data: { session } }) => setSession(session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session)
+    })
+    return () => subscription.unsubscribe()
+  }, [])
 
-  const trips = [...data.trips].sort((a, b) => {
-    if (!a.startDate) return 1
-    if (!b.startDate) return -1
-    return a.startDate.localeCompare(b.startDate)
-  })
+  // ── Data loading ────────────────────────────────────────────────────────────
 
-  const saveTrip = (trip) => {
-    setData((d) => {
-      const exists = d.trips.find((t) => t.id === trip.id)
-      return {
-        ...d,
-        trips: exists
-          ? d.trips.map((t) => (t.id === trip.id ? trip : t))
-          : [...d.trips, trip],
-      }
+  useEffect(() => {
+    if (!session) return
+    loadTrips().then(setTrips)
+    loadExpenses().then(setExpenses)
+  }, [session])
+
+  // ── Trip handlers ───────────────────────────────────────────────────────────
+
+  const handleSaveTrip = async (trip) => {
+    await saveTrip(trip, session.user.id)
+    setTrips((prev) => {
+      const exists = prev.find((t) => t.id === trip.id)
+      return exists ? prev.map((t) => (t.id === trip.id ? trip : t)) : [...prev, trip]
     })
     setActiveTab(trip.id)
   }
 
-  const deleteTrip = (tripId) => {
-    setData((d) => ({
-      trips: d.trips.filter((t) => t.id !== tripId),
-      expenses: d.expenses.filter((e) => e.tripId !== tripId),
-    }))
+  const handleDeleteTrip = async (tripId) => {
+    await deleteTrip(tripId)
+    setTrips((prev) => prev.filter((t) => t.id !== tripId))
+    setExpenses((prev) => prev.filter((e) => e.tripId !== tripId))
     setActiveTab('dashboard')
   }
 
-  const saveExpense = (expense) => {
-    setData((d) => {
-      const exists = d.expenses.find((e) => e.id === expense.id)
-      return {
-        ...d,
-        expenses: exists
-          ? d.expenses.map((e) => (e.id === expense.id ? expense : e))
-          : [...d.expenses, expense],
-      }
+  // ── Expense handlers ────────────────────────────────────────────────────────
+
+  const handleSaveExpense = async (expense) => {
+    await saveExpense(expense, session.user.id)
+    setExpenses((prev) => {
+      const exists = prev.find((e) => e.id === expense.id)
+      return exists ? prev.map((e) => (e.id === expense.id ? expense : e)) : [...prev, expense]
     })
   }
 
-  const deleteExpense = (expenseId) => {
-    setData((d) => ({ ...d, expenses: d.expenses.filter((e) => e.id !== expenseId) }))
+  const handleDeleteExpense = async (expenseId) => {
+    await deleteExpense(expenseId)
+    setExpenses((prev) => prev.filter((e) => e.id !== expenseId))
   }
+
+  // ── Import / export ─────────────────────────────────────────────────────────
 
   const handleImport = async (e) => {
     const file = e.target.files[0]
     if (!file) return
     try {
       const imported = await importData(file)
-      setData(imported)
+      for (const trip of imported.trips) await saveTrip(trip, session.user.id)
+      for (const expense of imported.expenses) await saveExpense(expense, session.user.id)
+      const [newTrips, newExpenses] = await Promise.all([loadTrips(), loadExpenses()])
+      setTrips(newTrips)
+      setExpenses(newExpenses)
       setActiveTab('dashboard')
     } catch {
       alert('Failed to import file. Make sure it is a valid travel-budget JSON export.')
@@ -72,7 +92,19 @@ export default function App() {
     e.target.value = ''
   }
 
-  const activeTrip = trips.find((t) => t.id === activeTab)
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  if (session === undefined) return null // initial auth check in flight
+
+  if (!session) return <Auth />
+
+  const sortedTrips = [...trips].sort((a, b) => {
+    if (!a.startDate) return 1
+    if (!b.startDate) return -1
+    return a.startDate.localeCompare(b.startDate)
+  })
+
+  const activeTrip = sortedTrips.find((t) => t.id === activeTab)
 
   const tabBase = 'px-4 py-2 text-sm font-medium rounded-t-lg border border-b-0 whitespace-nowrap cursor-pointer'
   const tabActive = 'bg-white border-gray-200 text-gray-900'
@@ -83,11 +115,12 @@ export default function App() {
       {/* Header */}
       <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
         <h1 className="text-2xl font-bold text-gray-900">✈️ Travel Budget</h1>
-        <div className="flex gap-2">
-          <button onClick={() => exportData(data)} className="btn-secondary text-xs">Export</button>
+        <div className="flex gap-2 items-center">
+          <button onClick={() => exportData(sortedTrips, expenses)} className="btn-secondary text-xs">Export</button>
           <button onClick={() => importRef.current.click()} className="btn-secondary text-xs">Import</button>
           <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
           <button onClick={() => { setEditingTrip(null); setShowTripForm(true) }} className="btn-primary text-xs">+ New Trip</button>
+          <button onClick={() => supabase.auth.signOut()} className="btn-secondary text-xs">Sign out</button>
         </div>
       </div>
 
@@ -99,7 +132,7 @@ export default function App() {
         >
           Dashboard
         </button>
-        {trips.map((trip) => (
+        {sortedTrips.map((trip) => (
           <button
             key={trip.id}
             onClick={() => setActiveTab(trip.id)}
@@ -113,15 +146,15 @@ export default function App() {
       {/* Content */}
       <div className="bg-white border border-gray-200 rounded-b-lg mx-6 mb-6 min-h-96">
         {activeTab === 'dashboard' ? (
-          <Dashboard trips={trips} expenses={data.expenses} />
+          <Dashboard trips={sortedTrips} expenses={expenses} />
         ) : activeTrip ? (
           <TripView
             trip={activeTrip}
-            expenses={data.expenses.filter((e) => e.tripId === activeTrip.id)}
-            onSaveExpense={saveExpense}
-            onDeleteExpense={deleteExpense}
+            expenses={expenses.filter((e) => e.tripId === activeTrip.id)}
+            onSaveExpense={handleSaveExpense}
+            onDeleteExpense={handleDeleteExpense}
             onEditTrip={(t) => { setEditingTrip(t); setShowTripForm(true) }}
-            onDeleteTrip={deleteTrip}
+            onDeleteTrip={handleDeleteTrip}
           />
         ) : (
           <div className="p-6 text-gray-400">Trip not found.</div>
@@ -131,7 +164,7 @@ export default function App() {
       {showTripForm && (
         <TripForm
           trip={editingTrip}
-          onSave={saveTrip}
+          onSave={handleSaveTrip}
           onClose={() => { setShowTripForm(false); setEditingTrip(null) }}
         />
       )}

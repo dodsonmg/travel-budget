@@ -1,3 +1,5 @@
+import { supabase } from './supabase'
+
 export const CATEGORIES = [
   'Transport',
   'Accommodation',
@@ -9,22 +11,102 @@ export const CATEGORIES = [
 
 export const TRIP_STATUSES = ['planning', 'active', 'completed']
 
-const STORAGE_KEY = 'travel-budget-data'
+// ── DB helpers ────────────────────────────────────────────────────────────────
+// Supabase uses snake_case columns; these converters keep the rest of the app
+// using camelCase without change.
 
-export function loadData() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw) return JSON.parse(raw)
-  } catch {}
-  return { trips: [], expenses: [] }
+function tripFromDb(row) {
+  return {
+    id: row.id,
+    destination: row.destination,
+    name: row.name,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    status: row.status,
+  }
 }
 
-export function saveData(data) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data))
+function tripToDb(trip, userId) {
+  return {
+    id: trip.id,
+    user_id: userId,
+    destination: trip.destination,
+    name: trip.name || null,
+    start_date: trip.startDate || null,
+    end_date: trip.endDate || null,
+    status: trip.status || 'planning',
+  }
 }
 
-export function exportData(data) {
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+function expenseFromDb(row) {
+  return {
+    id: row.id,
+    tripId: row.trip_id,
+    category: row.category,
+    description: row.description,
+    budgeted: row.budgeted,
+    paid: row.paid,
+    pending: row.pending,
+    fullyPaid: row.fully_paid,
+    notes: row.notes,
+  }
+}
+
+function expenseToDb(expense, userId) {
+  return {
+    id: expense.id,
+    trip_id: expense.tripId,
+    user_id: userId,
+    category: expense.category,
+    description: expense.description,
+    budgeted: Number(expense.budgeted) || 0,
+    paid: Number(expense.paid) || 0,
+    pending: Number(expense.pending) || 0,
+    fully_paid: expense.fullyPaid || false,
+    notes: expense.notes || null,
+  }
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+
+export async function loadTrips() {
+  const { data, error } = await supabase.from('trips').select('*').order('start_date')
+  if (error) throw error
+  return data.map(tripFromDb)
+}
+
+export async function loadExpenses() {
+  const { data, error } = await supabase.from('expenses').select('*')
+  if (error) throw error
+  return data.map(expenseFromDb)
+}
+
+// ── Mutations ─────────────────────────────────────────────────────────────────
+
+export async function saveTrip(trip, userId) {
+  const { error } = await supabase.from('trips').upsert(tripToDb(trip, userId))
+  if (error) throw error
+}
+
+export async function deleteTrip(tripId) {
+  const { error } = await supabase.from('trips').delete().eq('id', tripId)
+  if (error) throw error
+}
+
+export async function saveExpense(expense, userId) {
+  const { error } = await supabase.from('expenses').upsert(expenseToDb(expense, userId))
+  if (error) throw error
+}
+
+export async function deleteExpense(expenseId) {
+  const { error } = await supabase.from('expenses').delete().eq('id', expenseId)
+  if (error) throw error
+}
+
+// ── Export / import ───────────────────────────────────────────────────────────
+
+export function exportData(trips, expenses) {
+  const blob = new Blob([JSON.stringify({ trips, expenses }, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
@@ -47,6 +129,8 @@ export function importData(file) {
     reader.readAsText(file)
   })
 }
+
+// ── Utility ───────────────────────────────────────────────────────────────────
 
 export function fmt(amount) {
   return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0)
