@@ -20,6 +20,8 @@ jobs:
 
       - run: npm ci
 
+      - run: npm run lint
+
       - run: npm test
         env:
           VITE_SUPABASE_URL: http://localhost:54321
