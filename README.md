@@ -13,6 +13,8 @@ A personal travel budget tracker. Organize expenses by trip and category, track 
 
 ## Development
 
+Requires a Supabase project. Copy `.env.local.example` to `.env.local` and fill in your project URL and anon key.
+
 ```bash
 npm install
 npm run dev
@@ -31,6 +33,7 @@ Tests cover the core data functions (`tripTotals`, `fmt`, `tripLabel`) and the m
 ## Tech stack
 
 - React 19, Vite, Tailwind CSS
+- Supabase (PostgreSQL database, magic link auth, Row Level Security)
 - Vitest + React Testing Library
 - GitHub Actions CI (runs tests on push and PRs)
-- Data stored in localStorage (cross-device sync planned)
+- Deployed on Vercel
