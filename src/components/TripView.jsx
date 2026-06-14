@@ -73,7 +73,7 @@ export default function TripView({ trip, expenses, onSaveExpense, onDeleteExpens
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {items.map((exp) => {
-                    const rem = exp.fullyPaid ? 0 : (Number(exp.budgeted) || 0) - (Number(exp.paid) || 0) - (Number(exp.pending) || 0)
+                    const rem = exp.fullyPaid ? 0 : Math.max(0, (Number(exp.budgeted) || 0) - (Number(exp.paid) || 0) - (Number(exp.pending) || 0))
                     return (
                       <>
                         <tr key={exp.id} className="bg-white hover:bg-gray-50">
