@@ -1,16 +1,36 @@
-# React + Vite
+# Travel Budget
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal travel budget tracker. Organize expenses by trip and category, track what's budgeted, paid, and pending, and mark expenses paid in full to keep your remaining balance accurate.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Create trips with destination, dates, and status (planning / active / completed)
+- Add expenses per trip, organized by category (Transport, Accommodation, Food & Dining, etc.)
+- Track budgeted, paid, and pending amounts per expense
+- Mark an expense as **paid in full** to remove it from the remaining balance calculation
+- Export and import data as JSON
+- Dashboard overview across all trips
 
-## React Compiler
+## Development
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+```
 
-## Expanding the ESLint configuration
+## Testing
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm test           # run once
+npm run test:watch # watch mode
+npm run test:ui    # browser UI
+```
+
+Tests cover the core data functions (`tripTotals`, `fmt`, `tripLabel`) and the main components (`ExpenseForm`, `TripView`).
+
+## Tech stack
+
+- React 19, Vite, Tailwind CSS
+- Vitest + React Testing Library
+- GitHub Actions CI (runs tests on push and PRs)
+- Data stored in localStorage (cross-device sync planned)
