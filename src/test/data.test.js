@@ -60,9 +60,9 @@ describe('tripTotals', () => {
     expect(tripTotals(expenses).remaining).toBe(0)
   })
 
-  it('remaining goes negative when an open expense is over budget', () => {
+  it('remaining is floored at zero when an open expense is over budget', () => {
     const expense = { budgeted: 100, paid: 120, pending: 0, fullyPaid: false }
-    expect(tripTotals([expense]).remaining).toBe(-20)
+    expect(tripTotals([expense]).remaining).toBe(0)
   })
 
   it('handles an empty expense list', () => {
