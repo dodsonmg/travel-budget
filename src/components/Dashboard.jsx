@@ -25,7 +25,7 @@ export default function Dashboard({ trips, expenses }) {
   )
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">All Trips</h2>
 
       {trips.length === 0 && (
@@ -47,8 +47,8 @@ function Section({ title, rows, showTotals, totals, muted }) {
   return (
     <div className="mb-8">
       <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">{title}</h3>
-      <div className="rounded-lg border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
+      <div className="rounded-lg border border-gray-200 overflow-x-auto">
+        <table className="w-full min-w-[600px] text-sm">
           <thead className="bg-gray-50 text-gray-500">
             <tr>
               <th className="text-left px-4 py-3 font-medium">Trip</th>
