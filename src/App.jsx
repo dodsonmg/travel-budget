@@ -113,9 +113,9 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-100">
       {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-gray-900">✈️ Travel Budget</h1>
-        <div className="flex gap-2 items-center">
+      <div className="bg-white border-b border-gray-200 px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">✈️ Travel Budget</h1>
+        <div className="flex flex-wrap gap-2 items-center">
           <button onClick={() => exportData(sortedTrips, expenses)} className="btn-secondary text-xs">Export</button>
           <button onClick={() => importRef.current.click()} className="btn-secondary text-xs">Import</button>
           <input ref={importRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
@@ -125,7 +125,7 @@ export default function App() {
       </div>
 
       {/* Tabs */}
-      <div className="px-6 pt-4 flex gap-1 overflow-x-auto">
+      <div className="px-4 sm:px-6 pt-4 flex gap-1 overflow-x-auto">
         <button
           onClick={() => setActiveTab('dashboard')}
           className={`${tabBase} ${activeTab === 'dashboard' ? tabActive : tabInactive}`}
@@ -144,7 +144,7 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <div className="bg-white border border-gray-200 rounded-b-lg mx-6 mb-6 min-h-96">
+      <div className="bg-white border border-gray-200 rounded-b-lg mx-4 sm:mx-6 mb-6 min-h-96">
         {activeTab === 'dashboard' ? (
           <Dashboard trips={sortedTrips} expenses={expenses} />
         ) : activeTrip ? (
