@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { fmt, tripLabel, tripTotals } from '../data'
+import { fmt, tripLabel, tripTotals, TRIP_TEMPLATES, createTripTemplateExpenses } from '../data'
 
 describe('fmt', () => {
   it('formats a number as USD currency', () => {
@@ -72,5 +72,44 @@ describe('tripTotals', () => {
   it('treats missing numeric fields as zero', () => {
     const expense = { description: 'placeholder', fullyPaid: false }
     expect(tripTotals([expense])).toEqual({ budgeted: 0, paid: 0, pending: 0, remaining: 0 })
+  })
+})
+
+describe('trip templates', () => {
+  it('exposes the supported template choices', () => {
+    expect(TRIP_TEMPLATES.map((template) => template.key)).toEqual([
+      'blank',
+      'international',
+      'domestic-flight',
+      'domestic-drive',
+    ])
+  })
+
+  it('creates zero-budget placeholder expenses for the international template', () => {
+    const expenses = createTripTemplateExpenses('international', 'trip-1')
+    expect(expenses.map((expense) => expense.description)).toEqual([
+      'International flight',
+      'Hotel or stay',
+      'Airport transfers and local transit',
+      'Meals and drinks',
+      'Tours and sightseeing',
+      'Travel insurance and documents',
+    ])
+    expect(expenses).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          tripId: 'trip-1',
+          budgeted: 0,
+          paid: 0,
+          pending: 0,
+          fullyPaid: false,
+          notes: '',
+        }),
+      ])
+    )
+  })
+
+  it('returns no expenses for the blank template', () => {
+    expect(createTripTemplateExpenses('blank', 'trip-1')).toEqual([])
   })
 })

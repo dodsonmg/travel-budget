@@ -5,6 +5,7 @@ import {
   saveTrip, deleteTrip,
   saveExpense, deleteExpense,
   exportData, importData,
+  createTripTemplateExpenses,
   tripLabel,
 } from './data'
 import Dashboard from './components/Dashboard'
@@ -42,13 +43,21 @@ export default function App() {
 
   // ── Trip handlers ───────────────────────────────────────────────────────────
 
-  const handleSaveTrip = async (trip) => {
-    await saveTrip(trip, session.user.id)
+  const handleSaveTrip = async (trip, templateKey = 'blank') => {
+    const tripData = { ...trip }
+    delete tripData.templateKey
+    const isNewTrip = !trips.some((t) => t.id === tripData.id)
+    await saveTrip(tripData, session.user.id)
     setTrips((prev) => {
-      const exists = prev.find((t) => t.id === trip.id)
-      return exists ? prev.map((t) => (t.id === trip.id ? trip : t)) : [...prev, trip]
+      const exists = prev.find((t) => t.id === tripData.id)
+      return exists ? prev.map((t) => (t.id === tripData.id ? tripData : t)) : [...prev, tripData]
     })
-    setActiveTab(trip.id)
+    if (isNewTrip && templateKey !== 'blank') {
+      const templateExpenses = createTripTemplateExpenses(templateKey, tripData.id)
+      for (const expense of templateExpenses) await saveExpense(expense, session.user.id)
+      setExpenses((prev) => [...prev, ...templateExpenses])
+    }
+    setActiveTab(tripData.id)
   }
 
   const handleDeleteTrip = async (tripId) => {
