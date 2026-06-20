@@ -10,6 +10,55 @@ export const CATEGORIES = [
 ]
 
 export const TRIP_STATUSES = ['planning', 'active', 'completed']
+export const TRIP_TEMPLATES = [
+  {
+    key: 'blank',
+    label: 'Blank trip',
+    description: 'Start from scratch with no seeded expenses.',
+  },
+  {
+    key: 'international',
+    label: 'International',
+    description: 'Passport, flight, lodging, and travel logistics.',
+  },
+  {
+    key: 'domestic-flight',
+    label: 'Domestic + Flight',
+    description: 'Airfare, hotel, airport transit, and trip extras.',
+  },
+  {
+    key: 'domestic-drive',
+    label: 'Domestic + Drive',
+    description: 'Fuel, parking, lodging, and road-trip basics.',
+  },
+]
+
+const TRIP_TEMPLATE_EXPENSES = {
+  international: [
+    { category: 'Transport', description: 'International flight' },
+    { category: 'Accommodation', description: 'Hotel or stay' },
+    { category: 'Transport', description: 'Airport transfers and local transit' },
+    { category: 'Food & Dining', description: 'Meals and drinks' },
+    { category: 'Entertainment', description: 'Tours and sightseeing' },
+    { category: 'Misc', description: 'Travel insurance and documents' },
+  ],
+  'domestic-flight': [
+    { category: 'Transport', description: 'Round-trip flight' },
+    { category: 'Accommodation', description: 'Hotel or rental stay' },
+    { category: 'Transport', description: 'Airport parking or rideshare' },
+    { category: 'Food & Dining', description: 'Meals and snacks' },
+    { category: 'Entertainment', description: 'Activities and tickets' },
+    { category: 'Misc', description: 'Incidental trip costs' },
+  ],
+  'domestic-drive': [
+    { category: 'Transport', description: 'Gas or fuel' },
+    { category: 'Accommodation', description: 'Hotel or rental stay' },
+    { category: 'Transport', description: 'Parking and tolls' },
+    { category: 'Food & Dining', description: 'Meals and snacks' },
+    { category: 'Entertainment', description: 'Activities and tickets' },
+    { category: 'Misc', description: 'Car maintenance buffer' },
+  ],
+}
 
 // ── DB helpers ────────────────────────────────────────────────────────────────
 // Supabase uses snake_case columns; these converters keep the rest of the app
@@ -98,6 +147,14 @@ export async function saveExpense(expense, userId) {
   if (error) throw error
 }
 
+export async function saveExpenses(expenses, userId) {
+  if (expenses.length === 0) return
+  const { error } = await supabase.from('expenses').upsert(
+    expenses.map((expense) => expenseToDb(expense, userId))
+  )
+  if (error) throw error
+}
+
 export async function deleteExpense(expenseId) {
   const { error } = await supabase.from('expenses').delete().eq('id', expenseId)
   if (error) throw error
@@ -128,6 +185,21 @@ export function importData(file) {
     }
     reader.readAsText(file)
   })
+}
+
+export function createTripTemplateExpenses(templateKey, tripId) {
+  const seeded = TRIP_TEMPLATE_EXPENSES[templateKey] || []
+  return seeded.map((expense) => ({
+    id: newId(),
+    tripId,
+    category: expense.category,
+    description: expense.description,
+    budgeted: 0,
+    paid: 0,
+    pending: 0,
+    fullyPaid: false,
+    notes: '',
+  }))
 }
 
 // ── Utility ───────────────────────────────────────────────────────────────────

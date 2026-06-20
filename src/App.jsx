@@ -3,8 +3,9 @@ import { supabase } from './supabase'
 import {
   loadTrips, loadExpenses,
   saveTrip, deleteTrip,
-  saveExpense, deleteExpense,
+  saveExpense, saveExpenses, deleteExpense,
   exportData, importData,
+  createTripTemplateExpenses,
   tripLabel,
 } from './data'
 import Dashboard from './components/Dashboard'
@@ -42,13 +43,33 @@ export default function App() {
 
   // ── Trip handlers ───────────────────────────────────────────────────────────
 
-  const handleSaveTrip = async (trip) => {
-    await saveTrip(trip, session.user.id)
+  const handleSaveTrip = async (trip, templateKey = 'blank') => {
+    const tripData = { ...trip }
+    delete tripData.templateKey
+    const isNewTrip = !trips.some((t) => t.id === tripData.id)
+    await saveTrip(tripData, session.user.id)
+    let templateExpenses = []
+    if (isNewTrip && templateKey !== 'blank') {
+      templateExpenses = createTripTemplateExpenses(templateKey, tripData.id)
+      try {
+        await saveExpenses(templateExpenses, session.user.id)
+      } catch (error) {
+        try {
+          await deleteTrip(tripData.id)
+        } catch {
+          throw new Error('Trip templates could not be created, and cleanup failed. Refresh before trying again.')
+        }
+        throw error
+      }
+    }
     setTrips((prev) => {
-      const exists = prev.find((t) => t.id === trip.id)
-      return exists ? prev.map((t) => (t.id === trip.id ? trip : t)) : [...prev, trip]
+      const exists = prev.find((t) => t.id === tripData.id)
+      return exists ? prev.map((t) => (t.id === tripData.id ? tripData : t)) : [...prev, tripData]
     })
-    setActiveTab(trip.id)
+    if (templateExpenses.length > 0) {
+      setExpenses((prev) => [...prev, ...templateExpenses])
+    }
+    setActiveTab(tripData.id)
   }
 
   const handleDeleteTrip = async (tripId) => {
