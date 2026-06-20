@@ -21,6 +21,7 @@ vi.mock('../data', async () => {
     saveTrip: vi.fn(),
     deleteTrip: vi.fn(),
     saveExpense: vi.fn(),
+    saveExpenses: vi.fn(),
     deleteExpense: vi.fn(),
     exportData: vi.fn(),
     importData: vi.fn(),
@@ -28,7 +29,7 @@ vi.mock('../data', async () => {
 })
 
 import { supabase } from '../supabase'
-import { loadTrips, loadExpenses, saveTrip, saveExpense } from '../data'
+import { loadTrips, loadExpenses, saveTrip, deleteTrip, saveExpenses } from '../data'
 import App from '../App'
 
 beforeEach(() => {
@@ -40,7 +41,8 @@ beforeEach(() => {
   loadTrips.mockResolvedValue([])
   loadExpenses.mockResolvedValue([])
   saveTrip.mockResolvedValue(undefined)
-  saveExpense.mockResolvedValue(undefined)
+  deleteTrip.mockResolvedValue(undefined)
+  saveExpenses.mockResolvedValue(undefined)
 })
 
 describe('App trip templates', () => {
@@ -70,8 +72,10 @@ describe('App trip templates', () => {
       'user-1'
     )
 
-    await waitFor(() => expect(saveExpense).toHaveBeenCalledTimes(6))
-    expect(saveExpense.mock.calls.map(([expense]) => expense.description)).toEqual([
+    await waitFor(() => expect(saveExpenses).toHaveBeenCalledTimes(1))
+    const [seededExpenses, userId] = saveExpenses.mock.calls[0]
+    expect(userId).toBe('user-1')
+    expect(seededExpenses.map((expense) => expense.description)).toEqual([
       'International flight',
       'Hotel or stay',
       'Airport transfers and local transit',
@@ -79,6 +83,24 @@ describe('App trip templates', () => {
       'Tours and sightseeing',
       'Travel insurance and documents',
     ])
-    expect(saveExpense.mock.calls.every(([expense]) => expense.budgeted === 0)).toBe(true)
+    expect(seededExpenses.every((expense) => expense.budgeted === 0)).toBe(true)
+  })
+
+  it('removes the new trip and reports an error when template seeding fails', async () => {
+    const user = userEvent.setup()
+    saveExpenses.mockRejectedValue(new Error('Could not save template expenses'))
+    render(<App />)
+
+    await screen.findByText(/No trips yet/i)
+    await user.click(screen.getAllByText('+ New Trip')[0])
+    await user.selectOptions(screen.getByLabelText('Trip Template'), 'international')
+    await user.type(screen.getByPlaceholderText('e.g. Austin, TX'), 'Paris, France')
+    await user.type(screen.getByLabelText('Start Date *'), '2026-07-01')
+    await user.type(screen.getByLabelText('End Date *'), '2026-07-12')
+    await user.click(screen.getByText('Save Trip'))
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save template expenses')
+    expect(deleteTrip).toHaveBeenCalledWith(expect.any(String))
+    expect(screen.getByLabelText('Trip Template')).toBeInTheDocument()
   })
 })

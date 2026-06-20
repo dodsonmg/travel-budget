@@ -13,18 +13,31 @@ const empty = {
 
 export default function TripForm({ trip, onSave, onClose }) {
   const [form, setForm] = useState(trip ? { ...trip } : { ...empty, id: newId() })
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState(null)
 
   const set = (k) => (e) => setForm((f) => ({ ...f, [k]: e.target.value }))
+  const handleClose = () => {
+    if (!saving) onClose()
+  }
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    onSave(form, form.templateKey || 'blank')
-    onClose()
+    setSaving(true)
+    setError(null)
+    try {
+      await onSave(form, form.templateKey || 'blank')
+      setSaving(false)
+      onClose()
+    } catch (saveError) {
+      setSaving(false)
+      setError(saveError?.message || 'Could not save this trip. Please try again.')
+    }
   }
 
   return (
-    <Modal title={trip ? 'Edit Trip' : 'New Trip'} onClose={onClose}>
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Modal title={trip ? 'Edit Trip' : 'New Trip'} onClose={handleClose}>
+      <form onSubmit={handleSubmit} className="space-y-4" aria-busy={saving}>
         {!trip && (
           <Field label="Trip Template" htmlFor="trip-template">
             <select id="trip-template" className="input" value={form.templateKey} onChange={set('templateKey')}>
@@ -60,9 +73,12 @@ export default function TripForm({ trip, onSave, onClose }) {
             ))}
           </select>
         </Field>
+        {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
         <div className="flex justify-end gap-3 pt-2">
-          <button type="button" onClick={onClose} className="btn-secondary">Cancel</button>
-          <button type="submit" className="btn-primary">Save Trip</button>
+          <button type="button" onClick={handleClose} disabled={saving} className="btn-secondary">Cancel</button>
+          <button type="submit" disabled={saving} className="btn-primary">
+            {saving ? 'Saving…' : 'Save Trip'}
+          </button>
         </div>
       </form>
     </Modal>

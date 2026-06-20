@@ -18,7 +18,7 @@ A personal travel budget tracker. Organize expenses by trip and category, track 
 
 Copy `.env.local.example` to `.env.local` and fill in your Supabase project URL and anon key (Settings → API in the Supabase dashboard).
 
-To use magic-link authentication locally, add `http://localhost:5173/**` under Authentication → URL Configuration → Redirect URLs in the Supabase dashboard. Request a new magic link after starting the app; each link returns to the origin where sign-in began, while previously generated links retain their original redirect.
+To use magic-link authentication locally, add the origin printed by Vite followed by `/**` under Authentication → URL Configuration → Redirect URLs in the Supabase dashboard. This is normally `http://localhost:5173/**`, but Vite may select another port when that one is occupied. Request a new magic link after starting the app; each link returns to the origin where sign-in began, while previously generated links retain their original redirect.
 
 ```bash
 npm install

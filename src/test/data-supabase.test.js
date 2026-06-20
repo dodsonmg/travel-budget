@@ -6,7 +6,7 @@ vi.mock('../supabase', () => ({
 }))
 
 import { supabase } from '../supabase'
-import { loadTrips, loadExpenses, saveTrip, deleteTrip, saveExpense, deleteExpense } from '../data'
+import { loadTrips, loadExpenses, saveTrip, deleteTrip, saveExpense, saveExpenses, deleteExpense } from '../data'
 
 // ── Test fixtures ─────────────────────────────────────────────────────────────
 
@@ -218,6 +218,37 @@ describe('saveExpense', () => {
   it('throws when Supabase returns an error', async () => {
     supabase.from.mockReturnValue(createQueryMock({ error: new Error('insert failed') }))
     await expect(saveExpense(APP_EXPENSE, 'user-1')).rejects.toThrow('insert failed')
+  })
+})
+
+// ── saveExpenses ──────────────────────────────────────────────────────────────
+
+describe('saveExpenses', () => {
+  it('upserts all expenses in one converted batch', async () => {
+    const mock = createQueryMock({ error: null })
+    supabase.from.mockReturnValue(mock)
+
+    await saveExpenses([
+      APP_EXPENSE,
+      { ...APP_EXPENSE, id: 'exp-2', description: 'Hotel', budgeted: '500' },
+    ], 'user-1')
+
+    expect(supabase.from).toHaveBeenCalledTimes(1)
+    expect(supabase.from).toHaveBeenCalledWith('expenses')
+    expect(mock.upsert).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'exp-1', trip_id: 'trip-1', user_id: 'user-1' }),
+      expect.objectContaining({ id: 'exp-2', description: 'Hotel', budgeted: 500 }),
+    ])
+  })
+
+  it('does not query Supabase for an empty batch', async () => {
+    await saveExpenses([], 'user-1')
+    expect(supabase.from).not.toHaveBeenCalled()
+  })
+
+  it('throws when the batch upsert fails', async () => {
+    supabase.from.mockReturnValue(createQueryMock({ error: new Error('batch failed') }))
+    await expect(saveExpenses([APP_EXPENSE], 'user-1')).rejects.toThrow('batch failed')
   })
 })
 

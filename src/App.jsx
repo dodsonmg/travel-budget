@@ -3,7 +3,7 @@ import { supabase } from './supabase'
 import {
   loadTrips, loadExpenses,
   saveTrip, deleteTrip,
-  saveExpense, deleteExpense,
+  saveExpense, saveExpenses, deleteExpense,
   exportData, importData,
   createTripTemplateExpenses,
   tripLabel,
@@ -48,13 +48,25 @@ export default function App() {
     delete tripData.templateKey
     const isNewTrip = !trips.some((t) => t.id === tripData.id)
     await saveTrip(tripData, session.user.id)
+    let templateExpenses = []
+    if (isNewTrip && templateKey !== 'blank') {
+      templateExpenses = createTripTemplateExpenses(templateKey, tripData.id)
+      try {
+        await saveExpenses(templateExpenses, session.user.id)
+      } catch (error) {
+        try {
+          await deleteTrip(tripData.id)
+        } catch {
+          throw new Error('Trip templates could not be created, and cleanup failed. Refresh before trying again.')
+        }
+        throw error
+      }
+    }
     setTrips((prev) => {
       const exists = prev.find((t) => t.id === tripData.id)
       return exists ? prev.map((t) => (t.id === tripData.id ? tripData : t)) : [...prev, tripData]
     })
-    if (isNewTrip && templateKey !== 'blank') {
-      const templateExpenses = createTripTemplateExpenses(templateKey, tripData.id)
-      for (const expense of templateExpenses) await saveExpense(expense, session.user.id)
+    if (templateExpenses.length > 0) {
       setExpenses((prev) => [...prev, ...templateExpenses])
     }
     setActiveTab(tripData.id)

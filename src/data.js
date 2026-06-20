@@ -147,6 +147,14 @@ export async function saveExpense(expense, userId) {
   if (error) throw error
 }
 
+export async function saveExpenses(expenses, userId) {
+  if (expenses.length === 0) return
+  const { error } = await supabase.from('expenses').upsert(
+    expenses.map((expense) => expenseToDb(expense, userId))
+  )
+  if (error) throw error
+}
+
 export async function deleteExpense(expenseId) {
   const { error } = await supabase.from('expenses').delete().eq('id', expenseId)
   if (error) throw error
